@@ -4,23 +4,30 @@ import requests
 # --- Konfigurasi halaman
 st.set_page_config(page_title="AI Chatbot", page_icon="🤖")
 st.title("🤖 AI Chatbot via AgentRouter")
+st.markdown(
+    "Selamat datang di **AI Chatbot**! 🚀\n\n"
+    "Masukkan token API AgentRouter kamu, lalu mulai ngobrol dengan AI."
+)
 
-# --- Input API Token (supaya mudah, langsung di UI)
+# --- Input API Token (langsung di UI, biar mudah untuk semua user)
 if "agent_token" not in st.session_state:
     st.session_state.agent_token = ""
 
 st.session_state.agent_token = st.text_input(
-    "Masukkan AgentRouter API Token:",
+    "🔑 Masukkan AgentRouter API Token:",
     type="password",
-    value=st.session_state.agent_token
+    value=st.session_state.agent_token,
+    help="Token bisa dibuat di https://agentrouter.org/console/token"
 )
 
+# --- URL endpoint AgentRouter
 AGENT_API_URL = "https://agentrouter.org/v1/chat/completions"
 
 def ask_agentrouter(prompt: str, token: str) -> str:
-    """Kirim pertanyaan ke AgentRouter dan balasannya dikembalikan"""
+    """Kirim pertanyaan ke AgentRouter dan balikan jawaban AI"""
     if not token:
         return "⚠️ Harap masukkan API Token dulu."
+    
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
@@ -29,11 +36,14 @@ def ask_agentrouter(prompt: str, token: str) -> str:
         "model": "gpt-5",
         "messages": [{"role": "user", "content": prompt}]
     }
+
     try:
         r = requests.post(AGENT_API_URL, headers=headers, json=body, timeout=30)
         r.raise_for_status()
         data = r.json()
         return data["choices"][0]["message"]["content"]
+    except requests.exceptions.RequestException as e:
+        return f"⚠️ Request error: {e}"
     except Exception as e:
         return f"⚠️ Error: {e}"
 
@@ -42,7 +52,7 @@ if "history" not in st.session_state:
     st.session_state.history = []
 
 # --- Input pesan user
-user_input = st.chat_input("Tulis pesan...")
+user_input = st.chat_input("✍️ Tulis pesan di sini...")
 
 if user_input:
     reply = ask_agentrouter(user_input, st.session_state.agent_token)
@@ -53,3 +63,7 @@ if user_input:
 for role, msg in st.session_state.history:
     with st.chat_message("user" if role == "user" else "assistant"):
         st.markdown(msg)
+
+# --- Footer
+st.markdown("---")
+st.caption("Dibuat dengan ❤️ menggunakan [Streamlit](https://streamlit.io) + [AgentRouter](https://agentrouter.org)")
